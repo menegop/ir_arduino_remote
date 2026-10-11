@@ -10,7 +10,7 @@ La sorgente ufficiale dichiara licenza MIT. L'app usa l'indice pubblico e i file
 
 Repository: https://github.com/probonopd/irdb
 
-L'utente ha confermato di avere gia assolto gli obblighi richiesti dalla licenza irdb per questo progetto; per questo la sorgente e attiva automaticamente nella v11.
+L'utente ha confermato di avere gia assolto gli obblighi richiesti dalla licenza irdb per questo progetto; per questo la sorgente e attiva automaticamente nella v12.
 
 Avviso mantenuto nell'interfaccia:
 

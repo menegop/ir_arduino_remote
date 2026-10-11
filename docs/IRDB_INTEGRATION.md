@@ -1,4 +1,4 @@
-# irdb integration - v11
+# irdb integration - v12
 
 Source: https://github.com/probonopd/irdb
 Branch: master

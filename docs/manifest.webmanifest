@@ -2,8 +2,7 @@
   "name": "IR Remote Lab",
   "short_name": "IR Remote",
   "description": "Telecomando IR universale con Arduino Uno e apprendimento RAW.",
-  "id": "./",
-  "start_url": "./",
+  "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
   "background_color": "#f5f6f8",
@@ -22,5 +21,12 @@
       "type": "image/png",
       "purpose": "any maskable"
     }
-  ]
+  ],
+  "display_override": [
+    "standalone",
+    "minimal-ui"
+  ],
+  "launch_handler": {
+    "client_mode": "navigate-existing"
+  }
 }

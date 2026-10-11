@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const APP_VERSION = '11.0.0';
+  const APP_VERSION = '12.0.0';
   const STORAGE_KEY = 'irRemoteLab.remotes.v1';
   const app = document.getElementById('app');
   const modalRoot = document.getElementById('modalRoot');
@@ -23,6 +23,7 @@
       connected: false,
       connecting: false,
       connectPromise: null,
+      backend: null,
       listeners: new Set()
     },
     cloning: null,
@@ -463,10 +464,14 @@
       showToast('IR Remote Lab installata.', 'ok');
     });
 
-    if (!('serial' in navigator)) {
+    const hasNativeSerial = 'serial' in navigator;
+    const hasWebUsbFallback = 'usb' in navigator && !!window.IR_WEBUSB_SERIAL;
+    if (!hasNativeSerial && !hasWebUsbFallback) {
       connectButton.disabled = true;
-      serialStatus.textContent = 'Web Serial non disponibile';
-      serialStatus.title = 'Usa Chrome/Edge compatibile con Web Serial. Su Android collega Arduino via USB OTG.';
+      serialStatus.textContent = 'USB seriale non disponibile';
+      serialStatus.title = 'Serve Chrome/Edge con Web Serial oppure WebUSB. Su Android usa Chrome e un cavo/adattatore USB OTG dati.';
+    } else if (/Android/i.test(navigator.userAgent) && hasWebUsbFallback) {
+      serialStatus.title = 'Su Android IR Remote Lab usa WebUSB CDC come percorso preferito per Arduino Uno.';
     }
   }
 
@@ -605,6 +610,7 @@
         </div>
         <div class="home-summary"><strong>${state.remotes.length}</strong><span>telecomandi</span></div>
       </section>
+      ${isAndroidDevice() ? '<div class="notice usb-mobile-hint"><strong>Android USB:</strong> collega Arduino con un cavo/adattatore OTG che supporti i dati, poi premi <strong>Collega Arduino USB</strong>. La v12 usa WebUSB CDC come percorso preferito e non dipende dalla lista porte Web Serial del telefono.</div>' : ''}
       <div class="home-tools">
         <label class="search-box" aria-label="Cerca telecomando">
           <span>⌕</span><input id="homeSearch" type="search" placeholder="Cerca per nome, marca o modello..." autocomplete="off">
@@ -2002,8 +2008,50 @@ Return the JSON object only.`;
     const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `${remote.name.replace(/[^a-z0-9_-]+/gi, '_')}.json`; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
   }
 
+  function isAndroidDevice() {
+    return /Android/i.test(navigator.userAgent || '');
+  }
+
+  async function openSelectedPort(port, backend) {
+    await port.open({ baudRate: 115200 });
+    state.serial.port = port;
+    state.serial.writer = port.writable.getWriter();
+    state.serial.connected = true;
+    state.serial.backend = backend;
+    updateSerialUi();
+    readSerialLoop();
+
+    // Uno may reset when DTR is asserted/opened. WebUSB also needs a short
+    // settling time after configuring the CDC interface.
+    await sleep(650);
+    await sendSerialIfConnected('PING');
+    await sleep(80);
+    await sendSerialIfConnected('DEBUG 1');
+    await sleep(80);
+    await sendSerialIfConnected('STATUS');
+  }
+
+  async function connectNativeSerial() {
+    if (!('serial' in navigator)) throw new Error('Web Serial nativo non disponibile.');
+    // Keep the picker unfiltered on desktop so Uno clones remain selectable.
+    const port = await navigator.serial.requestPort();
+    await openSelectedPort(port, 'Web Serial');
+  }
+
+  async function connectWebUsbSerial() {
+    if (!('usb' in navigator) || !window.IR_WEBUSB_SERIAL) {
+      throw new Error('Fallback WebUSB non disponibile.');
+    }
+    const port = await window.IR_WEBUSB_SERIAL.requestPort();
+    await openSelectedPort(port, 'WebUSB CDC');
+  }
+
   async function connectSerial() {
-    if (!('serial' in navigator)) throw new Error('Web Serial non disponibile in questo browser. Usa un browser Chromium compatibile su localhost/HTTPS.');
+    const hasNativeSerial = 'serial' in navigator;
+    const hasWebUsbFallback = 'usb' in navigator && !!window.IR_WEBUSB_SERIAL;
+    if (!hasNativeSerial && !hasWebUsbFallback) {
+      throw new Error('Questo browser non espone ne Web Serial ne WebUSB. Usa Chrome/Edge compatibile.');
+    }
     if (state.serial.connected) return;
     if (state.serial.connectPromise) return state.serial.connectPromise;
 
@@ -2011,28 +2059,37 @@ Return the JSON object only.`;
       state.serial.connecting = true;
       updateSerialUi();
       try {
-        const port = await navigator.serial.requestPort();
-        await port.open({ baudRate: 115200 });
-        state.serial.port = port;
-        state.serial.writer = port.writable.getWriter();
-        state.serial.connected = true;
-        updateSerialUi();
-        readSerialLoop();
-        // Uno resets when the serial port is opened. Give it enough time to
-        // boot before sending the handshake, but do not require READY because
-        // the boot line can arrive before the listener is established.
-        await sleep(450);
-        await sendSerialIfConnected('PING');
-        await sleep(60);
-        await sendSerialIfConnected('DEBUG 1');
-        await sleep(60);
-        await sendSerialIfConnected('STATUS');
+        // Android wired Web Serial is not available on every phone even when
+        // navigator.serial exists. Prefer direct WebUSB CDC for Arduino Uno.
+        if (isAndroidDevice() && hasWebUsbFallback) {
+          try {
+            await connectWebUsbSerial();
+            return;
+          } catch (usbError) {
+            console.warn('WebUSB CDC connection failed', usbError);
+            if (!hasNativeSerial || usbError?.name === 'NotFoundError') throw usbError;
+            showToast('USB Android non riuscito. Provo Web Serial nativo...', 'warn', 3200);
+          }
+        }
+
+        if (hasNativeSerial) {
+          try {
+            await connectNativeSerial();
+            return;
+          } catch (serialError) {
+            console.warn('Native Web Serial connection failed', serialError);
+            if (!hasWebUsbFallback || serialError?.name === 'NotFoundError') throw serialError;
+          }
+        }
+
+        await connectWebUsbSerial();
       } catch (error) {
         try { state.serial.writer?.releaseLock(); } catch {}
         try { await state.serial.port?.close(); } catch {}
         state.serial.port = null;
         state.serial.writer = null;
         state.serial.connected = false;
+        state.serial.backend = null;
         throw error;
       } finally {
         state.serial.connecting = false;
@@ -2052,15 +2109,16 @@ Return the JSON object only.`;
     try { old.reader?.releaseLock(); } catch {}
     try { old.writer?.releaseLock(); } catch {}
     try { await old.port?.close(); } catch {}
-    state.serial = { port: null, reader: null, writer: null, readBuffer: '', connected: false, connecting: false, connectPromise: null, listeners: new Set() };
+    state.serial = { port: null, reader: null, writer: null, readBuffer: '', connected: false, connecting: false, connectPromise: null, backend: null, listeners: new Set() };
     updateSerialUi();
   }
 
   function updateSerialUi() {
-    serialStatus.textContent = state.serial.connecting ? 'Connessione Arduino...' : state.serial.connected ? 'Arduino collegato' : 'Arduino non collegato';
+    const backendLabel = state.serial.backend ? ` · ${state.serial.backend}` : '';
+    serialStatus.textContent = state.serial.connecting ? 'Connessione Arduino...' : state.serial.connected ? `Arduino collegato${backendLabel}` : 'Arduino non collegato';
     serialStatus.classList.toggle('connected', state.serial.connected);
     connectButton.disabled = state.serial.connecting;
-    connectButton.textContent = state.serial.connecting ? 'Connessione...' : state.serial.connected ? 'Scollega' : 'Collega Arduino';
+    connectButton.textContent = state.serial.connecting ? 'Connessione...' : state.serial.connected ? 'Scollega' : (isAndroidDevice() ? 'Collega Arduino USB' : 'Collega Arduino');
   }
 
   async function ensureSerial() {
@@ -2509,12 +2567,16 @@ Return the JSON object only.`;
     try { if (state.serial.connected) await disconnectSerial(); else await connectSerial(); }
     catch (error) {
       console.error('Serial connection error', error);
+      const androidHint = isAndroidDevice() ? ' Verifica OTG, cavo dati e autorizzazione USB. Se il telefono non espone la seriale nativa, la v12 usa automaticamente WebUSB CDC.' : '';
       serialStatus.textContent = `Errore seriale: ${error.message}`;
+      serialStatus.title = `${error.message}.${androidHint}`;
       serialStatus.classList.remove('connected');
+      showToast(`Connessione Arduino fallita. ${error.message}${androidHint}`, 'warn', 7000);
     }
   };
 
   window.addEventListener('beforeunload', () => { if (state.serial.connected) disconnectSerial(); });
   initPwa();
+  updateSerialUi();
   renderMain();
 })();

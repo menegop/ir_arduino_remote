@@ -1,13 +1,14 @@
-const STATIC_CACHE = 'ir-remote-lab-static-v11.0.0';
+const STATIC_CACHE = 'ir-remote-lab-static-v12.0.0';
 const SCOPE_URL = new URL('./', self.registration.scope);
 const INDEX_URL = new URL('index.html', SCOPE_URL).href;
 const STATIC_ASSETS = [
   './',
   './index.html',
-  './styles.css?v=11.0.0',
-  './remotes_db.js?v=11.0.0',
-  './external_db.js?v=11.0.0',
-  './app.js?v=11.0.0',
+  './styles.css?v=12.0.0',
+  './remotes_db.js?v=12.0.0',
+  './external_db.js?v=12.0.0',
+  './usb_serial.js?v=12.0.0',
+  './app.js?v=12.0.0',
   './manifest.webmanifest',
   './icons/icon-192.png',
   './icons/icon-512.png'
