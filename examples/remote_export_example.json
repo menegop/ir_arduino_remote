@@ -1,0 +1,43 @@
+{
+  "schema": "ir-remote-v1",
+  "id": "example_remote",
+  "name": "LG DVD example",
+  "deviceType": "dvd",
+  "brand": "LG",
+  "model": "COV33662801 family",
+  "source": "example",
+  "pattern": {
+    "schema": "ir-pattern-v1",
+    "id": "example_pattern",
+    "name": "Minimal example",
+    "width": 280,
+    "height": 430,
+    "body": {"x": 20, "y": 10, "w": 240, "h": 410, "rx": 50},
+    "decorations": [],
+    "buttons": [
+      {"id": "power", "label": "Power", "x": 105, "y": 65, "w": 70, "h": 44, "shape": "rounded", "semantic": "power"},
+      {"id": "key_3b", "label": "3B", "x": 60, "y": 155, "w": 70, "h": 42, "shape": "rounded", "semantic": ""},
+      {"id": "key_3c", "label": "3C", "x": 150, "y": 155, "w": 70, "h": 42, "shape": "rounded", "semantic": ""}
+    ]
+  },
+  "mapping": {
+    "power": {
+      "protocol": "PD32",
+      "carrierHz": 38000,
+      "timings": {"headerMark": 4636, "headerSpace": 4368, "bitMark": 600, "zeroSpace": 524, "oneSpace": 1636},
+      "bytes": [45, 45, 48, 207]
+    },
+    "key_3b": {
+      "protocol": "PD32",
+      "carrierHz": 38000,
+      "timings": {"headerMark": 4636, "headerSpace": 4368, "bitMark": 600, "zeroSpace": 524, "oneSpace": 1636},
+      "bytes": [45, 45, 59, 196]
+    },
+    "key_3c": {
+      "protocol": "PD32",
+      "carrierHz": 38000,
+      "timings": {"headerMark": 4636, "headerSpace": 4368, "bitMark": 600, "zeroSpace": 524, "oneSpace": 1636},
+      "bytes": [45, 45, 60, 195]
+    }
+  }
+}

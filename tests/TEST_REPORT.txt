@@ -1,0 +1,24 @@
+PASS static Arduino v06 <-> web serial protocol contract
+PASS GitHub Pages/PWA relative-path contract
+PASS load/home/version
+PASS serial connect/handshake
+PASS DB fallback: Flipper GitHub tree + irdb both load
+PASS DB manual sync
+PASS clone built-in pattern / skip / cancel
+PASS acquisition cancellation/navigation leak
+PASS recognition saves the 3 physically learned buttons + accurate ready count
+PASS edit/relearn button
+PASS clone/custom pattern + mismatch auto-retry
+PASS virtual remote transmit
+PASS model search / Flipper fallback + irdb / power tests / import / remote switcher
+PASS automatic search / stop / reacted / save
+PASS JSON invalid handling / import / export
+PASS rename / add+learn / remove button
+PASS button position editor drag / undo / keyboard nudge
+PASS mobile 390px editor layout
+PASS advanced send + validation
+PASS offline DB cache flow
+PASS remote delete + Home refresh
+PASS full backup export / import
+PASS serial disconnect
+PASS no uncaught JS/console errors
