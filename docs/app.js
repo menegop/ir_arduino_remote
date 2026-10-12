@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const APP_VERSION = '12.0.0';
+  const APP_VERSION = '13.0.0';
   const STORAGE_KEY = 'irRemoteLab.remotes.v1';
   const app = document.getElementById('app');
   const modalRoot = document.getElementById('modalRoot');
@@ -471,7 +471,7 @@
       serialStatus.textContent = 'USB seriale non disponibile';
       serialStatus.title = 'Serve Chrome/Edge con Web Serial oppure WebUSB. Su Android usa Chrome e un cavo/adattatore USB OTG dati.';
     } else if (/Android/i.test(navigator.userAgent) && hasWebUsbFallback) {
-      serialStatus.title = 'Su Android IR Remote Lab usa WebUSB CDC come percorso preferito per Arduino Uno.';
+      serialStatus.title = 'Su Android usa WebUSB: CDC per Uno, CH340/FT232R/CP210x per Nano classico.';
     }
   }
 
@@ -610,7 +610,7 @@
         </div>
         <div class="home-summary"><strong>${state.remotes.length}</strong><span>telecomandi</span></div>
       </section>
-      ${isAndroidDevice() ? '<div class="notice usb-mobile-hint"><strong>Android USB:</strong> collega Arduino con un cavo/adattatore OTG che supporti i dati, poi premi <strong>Collega Arduino USB</strong>. La v12 usa WebUSB CDC come percorso preferito e non dipende dalla lista porte Web Serial del telefono.</div>' : ''}
+      ${isAndroidDevice() ? '<div class="notice usb-mobile-hint"><strong>Android USB:</strong> collega Arduino con un cavo/adattatore OTG che supporti i dati, poi premi <strong>Collega Arduino USB</strong>. La v13 usa WebUSB per Uno e Nano e non dipende dalla lista porte Web Serial del telefono.</div>' : ''}
       <div class="home-tools">
         <label class="search-box" aria-label="Cerca telecomando">
           <span>⌕</span><input id="homeSearch" type="search" placeholder="Cerca per nome, marca o modello..." autocomplete="off">
@@ -2043,7 +2043,7 @@ Return the JSON object only.`;
       throw new Error('Fallback WebUSB non disponibile.');
     }
     const port = await window.IR_WEBUSB_SERIAL.requestPort();
-    await openSelectedPort(port, 'WebUSB CDC');
+    await openSelectedPort(port, port.backendLabel || 'WebUSB CDC');
   }
 
   async function connectSerial() {
@@ -2567,7 +2567,7 @@ Return the JSON object only.`;
     try { if (state.serial.connected) await disconnectSerial(); else await connectSerial(); }
     catch (error) {
       console.error('Serial connection error', error);
-      const androidHint = isAndroidDevice() ? ' Verifica OTG, cavo dati e autorizzazione USB. Se il telefono non espone la seriale nativa, la v12 usa automaticamente WebUSB CDC.' : '';
+      const androidHint = isAndroidDevice() ? ' Verifica OTG, cavo dati e autorizzazione USB. Se il telefono non espone la seriale nativa, la v13 usa WebUSB per CDC, CH340, FT232R e CP210x.' : '';
       serialStatus.textContent = `Errore seriale: ${error.message}`;
       serialStatus.title = `${error.message}.${androidHint}`;
       serialStatus.classList.remove('connected');
